@@ -5,7 +5,7 @@ ranges2track <- function(ranges, genome) {
     for (i in 1:length(genome)) {
         
         chr <- names(genome)[i]
-        chrRanges <- ranges[Chromosome == chr]
+        chrRanges <- ranges[ranges$Chromosome == chr]
 
         iranges <- IRanges::disjoin(IRanges::IRanges(chrRanges$Start_Position, chrRanges$End_Position))
         value <- sapply(IRanges::width(iranges), function(w) strrep("Y", w))

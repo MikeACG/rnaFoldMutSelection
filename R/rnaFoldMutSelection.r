@@ -147,7 +147,7 @@ mutmat <- function(abundance, cohort, mafs, bgenome, cgenomes, genome) {
         chr <- names(genome)[i]
         chrPositions <- Biostrings::matchPattern("Y", bgenome[[chr]])
         chrMuts <- mafs[[chr]]
-        chrMuts <- chrMuts[Cohort == cohort]
+        chrMuts <- chrMuts[chrMuts$Cohort == cohort]
 
         # get mutations that are in regions of interest
         chrMutsRanges <- IRanges::IRanges(chrMuts$Start_Position, chrMuts$End_Position)
@@ -256,7 +256,8 @@ trCountMuts <- function(trGtf, trSNPfoldDt, mafs, cohort) {
     trStrand <- trGtf$Strand[1] 
 
     # find mutations overlapping the transcript
-    chrCohortMaf <- mafs[[trChr]][Cohort == cohort]
+    chrCohortMaf <- mafs[[trChr]]
+    chrCohortMaf <- chrCohortMaf[chrCohortMaf$Cohort == cohort]
     gtfRanges <- IRanges::IRanges(trGtf$Start_Position, trGtf$End_Position)
     mutRanges <- IRanges::IRanges(chrCohortMaf$Start_Position, chrCohortMaf$End_Position)
     mutOverlaps <- IRanges::countOverlaps(mutRanges, gtfRanges)
