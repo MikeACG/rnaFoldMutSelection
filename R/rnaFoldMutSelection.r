@@ -1,4 +1,5 @@
 #' @export
+#' @import data.table
 rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir, runId) {
 
     cat("BEGIN\n")
