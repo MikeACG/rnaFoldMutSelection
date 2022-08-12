@@ -135,7 +135,7 @@ mat2hash <- function(M, w) {
 cvarKmer2 <- function(cgenome, chr, chrSiteRanges, countStrand) {
 
     # get the covariate at sites of kmers
-    kmerCvars <- as.character(extractAt(cgenome[[chr]], chrSiteRanges))
+    kmerCvars <- as.character(Biostrings::extractAt(cgenome[[chr]], chrSiteRanges))
 
     # determine the type of covariate
     psiteCvars <- attr(cgenome, "lvls")
