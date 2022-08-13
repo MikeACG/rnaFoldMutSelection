@@ -1,10 +1,12 @@
 #' @export
 #' @import data.table
-rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir, runId) {
+rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir, ...) {
 
     cat("BEGIN\n")
     set.seed(rng)
-    if (missing(runId)) {
+    optParams <- list(...)
+    runId <- optParams$runId
+    if (is.null(runId)) {
 
         runId <- stringi::stri_join(
             cohort,
@@ -29,21 +31,31 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
     obsDistPath <- stringi::stri_join(outRoot, "obsDistribution.txt")
     file.create(obsDistPath)
 
-    # make binary genome based on regions of interest
-    gtf <- data.table::rbindlist(gElms$gtf)
-    bgenome <- ranges2track(gtf, genome)
+    # if mutational matrix not provided, compute it
+    mutmatPath <- optParams$mutmatPath
+    if (is.null(mutmatPath)) {
+        
+        # make binary genome based on regions of interest
+        gtf <- data.table::rbindlist(gElms$gtf)
+        bgenome <- ranges2track(gtf, genome)
 
-    # calculate abundances
-    cat("computing abundances...\n")
-    abundance <- countAbundance(k, bgenome, cgenomes, genome)
+        # calculate abundances
+        cat("computing abundances...\n")
+        abundance <- countAbundance(k, bgenome, cgenomes, genome)
 
-    # calculate mutational matrix
-    cat("computing mutational matrix...\n")
-    M <- mutmat(abundance, cohort, mafs, bgenome, cgenomes, genome)
-    save(M, file = Mpath)
+        # calculate mutational matrix
+        cat("computing mutational matrix...\n")
+        M <- mutmat(abundance, cohort, mafs, bgenome, cgenomes, genome)
+        save(M, file = Mpath)
 
-    # clean some memory space
-    bgenome <- gtf <- NULL; gc()
+        # clean some memory space
+        bgenome <- gtf <- NULL; gc()
+    
+    } else {
+
+        M <- loadRData(mutmatPath)
+
+    }
 
     # for each genomic element
     trSNPfoldPaths <- stringi::stri_join(snpfoldDir, gElms$Id, sep = "/")
@@ -89,6 +101,7 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
 
 }
 
+#' @export
 countAbundance <- function(k, bgenome, cgenomes, genome) {
 
     cvars <- names(cgenomes)
@@ -134,6 +147,7 @@ countAbundance <- function(k, bgenome, cgenomes, genome) {
 
 }
 
+#' @export
 mutmat <- function(abundance, cohort, mafs, bgenome, cgenomes, genome) {
 
     pContexts <- names(abundance)

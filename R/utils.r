@@ -1,3 +1,4 @@
+#' @export
 ranges2track <- function(ranges, genome) {
 
     track <- Biostrings::BStringSet(lapply(genome, function(chr) Biostrings::BString(strrep("N", length(chr)))))
@@ -161,7 +162,7 @@ loadRData <- function(fileName){
 }
 
 #' @export
-analyzeFromSchedule <- function(idx, scheduleFile, gElmsPath, genomePath, mafsPath, snpfoldDir, rng, outdir) {
+analyzeFromSchedule <- function(idx, scheduleFile, gElmsPath, genomePath, mafsPath, snpfoldDir, rng, outdir, ...) {
 
     idx <- as.integer(idx)
     schedule <- data.table::fread(scheduleFile, sep = "\t")
@@ -183,7 +184,7 @@ analyzeFromSchedule <- function(idx, scheduleFile, gElmsPath, genomePath, mafsPa
     rng <- as.integer(rng)
     outdir <- as.character(outdir)
 
-    rnaFoldMutSelection(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir)
+    rnaFoldMutSelection(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir, ...)
 
 }
 

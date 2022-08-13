@@ -1,15 +1,17 @@
-expectedHists <- function(expDists, binsize) {
+expectedHists <- function(expDists, binSize, obsDist) {
 
     # find the breaks according to bin size
-    expMins <- sapply(expDists, function(.dt) min(.dt$PCC))
-    expMaxs <- sapply(expDists, function(.dt) max(.dt$PCC))
-    minpcc <- pmax(min(expMins) - (min(expMins) %% binSize), -1)
-    maxpcc <- pmin(max(expMaxs) + (max(expMaxs) %% binSize), 1)
+    expMins <- sapply(append(expDists, list(obsDist)), function(.dt) min(.dt$PCC))
+    expMaxs <- sapply(append(expDists, list(obsDist)), function(.dt) max(.dt$PCC))
+    minpcc <- floor(min(expMins) / binSize) * binSize
+    maxpcc <- ceiling(max(expMaxs) / binSize) * binSize
     brks <- seq(minpcc, maxpcc, binSize)
 
     H <- lapply(expDists, function(d) plotrix::weighted.hist(d$PCC, d$transitProb, brks, plot = FALSE))
     H <- lapply(H, function(h) {
         h$density <- h$counts / sum(h$counts)
+        class(h) <- "histogram"
+        h$breaks <- brks
         h
     })
 
@@ -24,13 +26,13 @@ plotModelsHist <- function(rootDirs, binSize, xlim) {
     expDistPaths <- stringi::stri_join(rootDirs, "expDistribution.tsv")
     expDists <- lapply(expDistPaths, function(p) setNames(data.table::fread(p, header = FALSE), c("PCC", "transitProb")))
 
-    # compute expected histograms for each model
-    H <- setNames(expectedHists(expDists, binSize), basename(rootDirs))
-    brks <- H[[1]]$breaks
-
     # load the observed distribution (assumes it is the same for all models, so we use the first rootDir)
     obsDistPath <- stringi::stri_join(rootDirs[1], "obsDistribution.txt")
     obsDist <- setNames(data.table::fread(obsDistPath, header = FALSE), "PCC")
+
+    # compute expected histograms for each model
+    H <- setNames(expectedHists(expDists, binSize, obsDist), basename(rootDirs))
+    brks <- H[[1]]$breaks
 
     # compute observed histogram
     H$Observed <- hist(obsDist$PCC, breaks = brks, plot = FALSE)
@@ -72,17 +74,17 @@ plotEnsemblsHist <- function(rootDirsList, binSize, xlim) {
         data.table::rbindlist(expDists)
     })
 
-    # compute expected histograms for each ensembl of models
-    H <- setNames(expectedHists(expEnsemblsDist, binSize), names(rootDirsList))
-    brks <- H[[1]]$breaks
-
     # load the observed distribution of the ensembls (assumes it is the same for all ensembls, so we use the first ensembl)
     obsDistPaths <- stringi::stri_join(rootDirsList[[1]], "obsDistribution.txt")
     obsEnsemblDist <- lapply(obsDistPaths, function(p) setNames(data.table::fread(p, header = FALSE), "PCC"))
     obsEnsemblDist <- data.table::rbindlist(obsEnsemblDist)
 
+    # compute expected histograms for each ensembl of models
+    H <- setNames(expectedHists(expEnsemblsDist, binSize, obsEnsemblDist), names(rootDirsList))
+    brks <- H[[1]]$breaks
+
     # compute observed histogram
-    H$Observed <- hist(obsDist$PCC, breaks = brks, plot = FALSE)
+    H$Observed <- hist(obsEnsemblDist$PCC, breaks = brks, plot = FALSE)
     H$Observed$density <- H$Observed$counts / sum(H$Observed$counts)
 
     # compute a naive histogram of expected with no weights (uniform), it is assumed the expected PCCs for all ensembls are the same, so we just take the first dist
