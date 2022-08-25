@@ -341,7 +341,7 @@ ensemblSelectionTest <- function(rootDirs, gElms, snpfoldDir, rng, outFile) {
         trSNPfoldDt <- data.table::fread(trSNPfoldPaths[i])
 
         # for each model in ensembl load the transition probabilities for each site
-        pPaths <- stringi::stri_join(rootDirs, gElms[i], ".tsv")
+        pPaths <- stringi::stri_join(rootDirs, "pfiles/", gElms$Id[i], ".tsv")
         Ps <- lapply(pPaths, data.table::fread)
 
         # filter out models where no mutations are observed

@@ -20,7 +20,7 @@ expectedHists <- function(expDists, binSize, obsDist) {
 }
 
 #' @export
-plotModelsHist <- function(rootDirs, binSize, xlim) {
+plotModelsHist <- function(rootDirs, binSize, xlim, plot = TRUE) {
 
     # load expected distributions from each model
     expDistPaths <- stringi::stri_join(rootDirs, "expDistribution.tsv")
@@ -44,13 +44,18 @@ plotModelsHist <- function(rootDirs, binSize, xlim) {
 
     # plot 
     if (missing(xlim)) xlim <- c(min(brks), max(brks))
-    plotHists(H, xlim)
+    if (plot) plotHists(H, xlim)
+
+    return(H)
 
 }
 
+#' @export
 plotHists <- function(hists, xlim) {
 
     brks <- hists[[1]]$breaks
+    if (missing(xlim)) xlim <- c(min(brks), max(brks))
+
     binIsXlim <- sapply(1:(length(brks) - 1), function(i) brks[i] >= xlim[1] & brks[i + 1] <= xlim[2])
     ylim.max <- max(sapply(hists, function(h) max(h$density[binIsXlim])))
     par(las = 2)
@@ -65,7 +70,7 @@ plotHists <- function(hists, xlim) {
 }
 
 #' @export
-plotEnsemblsHist <- function(rootDirsList, binSize, xlim) {
+plotEnsemblsHist <- function(rootDirsList, binSize, xlim, plot = TRUE) {
 
     # load expected distributions from each ensembl of models
     expDistPathsList <- lapply(rootDirsList, function(rootDirs) stringi::stri_join(rootDirs, "expDistribution.tsv"))
@@ -93,7 +98,27 @@ plotEnsemblsHist <- function(rootDirsList, binSize, xlim) {
 
     # plot
     if (missing(xlim)) xlim <- c(min(brks), max(brks))
-    plotHists(H, xlim)
+    if (plot) plotHists(H, xlim)
+
+    return(H)
 
 }
 
+#' @export
+evaluateModels <- function(rootDirs, binSize) {
+
+    H <- plotModelsHist(rootDirs, binSize, plot = FALSE)
+    
+    .o <- H$Observed$density
+    H$Observed <- NULL
+    .E <- lapply(H, function(h) h$density)
+
+    return(sapply(.E, cosineSimilarity, .o))
+
+}
+
+cosineSimilarity <- function(x, y) {
+
+    return(sum(x * y) / (sqrt(sum(x ^ 2)) * sqrt(sum(y ^ 2))))
+
+}
