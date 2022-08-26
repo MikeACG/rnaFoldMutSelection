@@ -122,3 +122,66 @@ cosineSimilarity <- function(x, y) {
     return(sum(x * y) / (sqrt(sum(x ^ 2)) * sqrt(sum(y ^ 2))))
 
 }
+
+#' @export
+predictionCurves <- function(rootdir, gtSet, plot = TRUE, ids = NULL) {
+
+    # load results for the rootdir
+    resultsPath <- stringi::stri_join(rootdir, "results.tsv")
+    results <- data.table::fread(resultsPath)
+
+    # if ids provided for each genomic element, use that as id column
+    if (!is.null(ids)) results$Id <- ids
+
+    # remove missing values
+    results <- results[!is.na(results$Pvalue)]
+
+    # determine data labels according to ground truth
+    results$Label <- ifelse(results$Id %in% gtSet, 1, 0)
+
+    # compute prediction curves
+    pcurveSet <- list()
+    pcurveSet$obsROC <- PRROC::roc.curve(scores.class0 = -results$Pvalue, weights.class0 = results$Label, 
+        curve = TRUE, max.compute = TRUE, min.compute = TRUE, rand.compute = TRUE
+    )
+    pcurveSet$obsPRC <- PRROC::pr.curve(scores.class0 = -results$Pvalue, weights.class0 = results$Label,
+        curve = TRUE, max.compute = TRUE, min.compute = TRUE, rand.compute = TRUE
+    )
+
+    # plot if specified
+    if (plot) {
+
+        title <- basename(rootdir)
+        par(mfrow = c(1, 2), pty = "s")
+        plotPRROCcurves(pcurveSet["obsROC"], title)
+        plotPRROCcurves(pcurveSet["obsPRC"], title)
+
+    }
+
+    return(pcurveSet)
+
+}
+
+#' @export
+plotPRROCcurves = function(curves, title) {
+
+    n <- length(curves)
+    cols <- 1:n
+    auc <- sapply(curves, function(.c) ifelse(.c$type == "ROC", .c$auc, .c$auc.integral))
+    lgnd <- paste(names(curves), signif(auc, 3))
+
+    plot(curves[[1]], rand.plot = TRUE, col = cols[1], auc.main = FALSE, main = title, lwd = 1)
+    curves[[1]] <- NULL
+    cols <- cols[-1]
+
+    while (length(curves) > 0) {
+
+        plot(curves[[1]], add = TRUE, rand.plot = TRUE, col = cols[1], lwd = 1)
+        curves[[1]] <- NULL
+        cols <- cols[-1]
+
+    }
+    legend("bottomright", legend = lgnd, lty = 1, lwd = 2, col = 1:n, cex = 0.7, bty = "n")
+
+}
+

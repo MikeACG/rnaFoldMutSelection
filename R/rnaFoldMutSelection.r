@@ -58,7 +58,7 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
     }
 
     # for each genomic element
-    trSNPfoldPaths <- stringi::stri_join(snpfoldDir, gElms$Id, sep = "/")
+    trSNPfoldPaths <- stringi::stri_join(snpfoldDir, gElms$Id)
     pPaths <- stringi::stri_join(pfilesPath, gElms$Id, ".tsv", sep = "")
     n <- nrow(gElms)
     pvalues <- numeric(n)
@@ -66,7 +66,8 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
     cat("---inference routine---\n")
     for (i in 1:n) {
 
-        if (i %% 100 == 0) cat(stringi::stri_join("\t", i, "/", n, "...\n", sep = ""))
+        if (i %% 100 == 0) cat(stringi::stri_join("\t", i, "/", n, "...\n", sep = "")); flush.console(); gc()
+
 
         # load SNPfold results
         trSNPfoldDt <- data.table::fread(trSNPfoldPaths[i])
@@ -315,8 +316,12 @@ selectionTest <- function(P, trSNPfoldDt) {
     nobs <- length(obs)
     if (length(obs) == 0) return(NA)
 
-    sims <- rmultinom(nsims, nobs, P$transitProb)
-    simSums <- apply(sims, 2, function(sim) sum(rep(trSNPfoldDt$PCC, sim)))
+    simSums <- numeric(nsims)
+    for (i in 1:nsims) {
+
+        simSums[i] <- sum(rep(trSNPfoldDt$PCC, rmultinom(1, nobs, P$transitProb)[, 1]))
+
+    }
 
     return(sum(simSums <= sum(obs)) / nsims)
 
