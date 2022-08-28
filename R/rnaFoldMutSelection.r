@@ -1,6 +1,6 @@
 #' @export
 #' @import data.table
-rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir, ...) {
+rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, pval, rng, outdir, ...) {
 
     cat("BEGIN\n")
     set.seed(rng)
@@ -61,13 +61,12 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
     trSNPfoldPaths <- stringi::stri_join(snpfoldDir, gElms$Id)
     pPaths <- stringi::stri_join(pfilesPath, gElms$Id, ".tsv", sep = "")
     n <- nrow(gElms)
-    pvalues <- numeric(n)
+    if (pval) pvalues <- numeric(n)
     nmuts <- integer(n)
     cat("---inference routine---\n")
     for (i in 1:n) {
 
         if (i %% 100 == 0) cat(stringi::stri_join("\t", i, "/", n, "...\n", sep = "")); flush.console(); gc()
-
 
         # load SNPfold results
         trSNPfoldDt <- data.table::fread(trSNPfoldPaths[i])
@@ -82,7 +81,7 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
         obsDist <- data.table::data.table(PCC = rep(trSNPfoldDt$PCC, P$mutObs))
 
         # conduct test for selection
-        pvalues[i] <- selectionTest(P, trSNPfoldDt)
+        if (pval) pvalues[i] <- selectionTest(P, trSNPfoldDt)
         nmuts[i] <- sum(P$mutObs)
 
         # save intermediate data
@@ -95,9 +94,14 @@ rnaFoldMutSelection <- function(cohort, k, cgenomes, gElms, genome, mafs, snpfol
     }
 
     # save results
-    R <- data.table::data.table(Id = gElms$Id, Name = gElms$Name, Mutations = nmuts, Pvalue = pvalues)
-    resultsPath <- stringi::stri_join(outRoot, "results.tsv")
-    data.table::fwrite(R, resultsPath, sep = "\t", na = "NA")
+    if (pval) {
+
+        R <- data.table::data.table(Id = gElms$Id, Name = gElms$Name, Mutations = nmuts, Pvalue = pvalues)
+        resultsPath <- stringi::stri_join(outRoot, "results.tsv")
+        data.table::fwrite(R, resultsPath, sep = "\t", na = "NA")
+
+    }
+
     cat("DONE\n")
 
 }

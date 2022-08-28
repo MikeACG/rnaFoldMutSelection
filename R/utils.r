@@ -162,7 +162,7 @@ loadRData <- function(fileName){
 }
 
 #' @export
-analyzeFromSchedule <- function(idx, scheduleFile, gElmsPath, genomePath, mafsPath, snpfoldDir, rng, outdir, ...) {
+analyzeFromSchedule <- function(idx, scheduleFile, gElmsPath, genomePath, mafsPath, snpfoldDir, pval, rng, outdir, ...) {
 
     idx <- as.integer(idx)
     schedule <- data.table::fread(scheduleFile, sep = "\t")
@@ -181,10 +181,11 @@ analyzeFromSchedule <- function(idx, scheduleFile, gElmsPath, genomePath, mafsPa
     genome <- loadRData(as.character(genomePath))
     mafs <- loadRData(as.character(mafsPath))
     snpfoldDir <- as.character(snpfoldDir)
+    pval <- as.logical(pval)
     rng <- as.integer(rng)
     outdir <- as.character(outdir)
 
-    rnaFoldMutSelection(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, rng, outdir, ...)
+    rnaFoldMutSelection(cohort, k, cgenomes, gElms, genome, mafs, snpfoldDir, pval, rng, outdir, ...)
 
 }
 
@@ -198,5 +199,41 @@ makeSchedule <- function(cohorts, ks, cgenomesPaths) {
     schedule <- expand.grid(cohort = cohorts, k = ks, cgenomes = c("simple", unlist(combs)))
 
     return(data.table::data.table(schedule))
+
+}
+
+#' @export
+makeSelectionJobs <- function(rootdirsDir, snpfoldDir) {
+
+    rootDirs <- list.files(rootdirsDir, full.names = TRUE)
+    gElmIds <- list.files(snpfoldDir)
+    Ppaths <- lapply(rootDirs, function(d) stringi::stri_join(d, "/pfiles/", gElmIds, ".tsv"))
+    trSNPfoldDtPaths <- lapply(1:length(rootDirs), function(i) stringi::stri_join(snpfoldDir, gElmIds))
+    outDirs <- lapply(rootDirs, function(d) rep(stringi::stri_join(d, "/selection_tmp/"), length(gElmIds)))
+
+    jobs <- data.table::data.table(
+        Ppath = unlist(Ppaths),
+        trSNPfoldDtPath = unlist(trSNPfoldDtPaths),
+        outDir = unlist(outDirs)
+    )
+    return(jobs)
+
+}
+
+#' @export
+selectionTestFromFiles <- function(Ppath, trSNPfoldDtPath, outDir) {
+
+    cat(Ppath)
+    P <- data.table::fread(Ppath)
+    trSNPfoldDt <- data.table::fread(trSNPfoldDtPath)
+
+    pvalue <- selectionTest(P, trSNPfoldDt)
+    nmut <- sum(P$mutObs)
+
+    if (!file.exists(outDir)) dir.create(outDir)
+    outPath <- stringi::stri_join(outDir, basename(trSNPfoldDtPath), ".RData")
+    R <- data.table::data.table(Mutations = nmut, Pvalue = pvalue)
+    save(R, file = outPath)
+    cat("\nDONE")
 
 }
