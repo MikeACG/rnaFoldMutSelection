@@ -184,4 +184,3 @@ plotPRROCcurves = function(curves, title) {
     legend("bottomright", legend = lgnd, lty = 1, lwd = 2, col = 1:n, cex = 0.7, bty = "n")
 
 }
-
