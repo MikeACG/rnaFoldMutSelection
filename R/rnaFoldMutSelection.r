@@ -65,31 +65,36 @@ kmerifyMaf <- function(mafRanges, siteRanges, D, kmer) {
     )
 
     # assign mutation type
-    m$mutation <- paste0(kmer, ">", m$finalState)
+    if (length(m) > 0) {
+        m$mutation <- paste0(kmer, ">", m$finalState)
+    } else {
+        m$mutation <- character(0)
+    }
 
     return(m)
 
 }
 
 #' @export
-fitKmer <- function(D, m, x) {
+fitKmer <- function(D, m, x, kmer, nuc) {
 
     # fit model for each type of mutation
     R <- list()
-    mutTypes <- unique(m$mutation)
+    mutTypes <- mtypes(kmer, nuc)
     for (mt in mutTypes) {
 
         msites <- table(S4Vectors::subjectHits(m$ov[m$mutation == mt]))
         D$mutated <- rep(0L, nrow(D))
         D$mutated[as.integer(names(msites))] <- as.integer(msites)
-        if (length(x) > 0) {
+        n <- sum(D$mutated)
+        if (length(x) > 0 & n > 0) {
 
             R[[mt]] <- simplifyLm(lm(reformulate(x, "mutated"), data = D))
 
         } else {
 
             R[[mt]] <- structure(
-                list(cellval = sum(D$mutated) / nrow(D)),
+                list(cellval = n / nrow(D)),
                 class = "mutMatrixCell"
             )
 

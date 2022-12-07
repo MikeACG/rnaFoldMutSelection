@@ -23,3 +23,12 @@ simplifyLm = function(cm) {
 
     cm
 }
+
+mtypes <- function(kmer, nuc) {
+
+    nucs <- c("A", "C", "G", "T")
+    mutTypes <- paste0(kmer, ">", nucs[!(nucs %in% nuc)])
+
+    return(mutTypes)
+
+}
