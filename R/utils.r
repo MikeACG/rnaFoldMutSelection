@@ -32,3 +32,18 @@ mtypes <- function(kmer, nuc) {
     return(mutTypes)
 
 }
+
+predict.mutMatrixCell <- function(model, newdata) {
+
+    return(model$cellval)
+
+}
+
+simprobnorm <- function(v) {
+
+    v[v < 0] <- 0
+    y <- v / sum(v)
+
+    return(y)
+
+}

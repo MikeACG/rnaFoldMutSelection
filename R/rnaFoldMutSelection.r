@@ -190,3 +190,57 @@ getGtfSites <- function(gtf) {
 
 }
 
+#' @export
+simframe <- function(g, m2, f, R, x) {
+
+    # triplicate each site in the target
+    s <- data.table::as.data.table(
+        GenomicRanges::mcols(g)[rep(1:length(g), each = 3), ]
+    )
+
+    # assign mutation type using folding frame as guide
+    f$Change_To <- gsub("U", "T", f$Change_To)
+    ispurine <- f$Wild_Type %in% c("A", "G")
+    s$mutation <- paste(
+        s$kmer,
+        ifelse(ispurine, chartr("ACGT", "TGCA", f$Change_To), f$Change_To),
+        sep = ">"
+    )
+
+    # assign mutation probability
+    s$model <- rep(NA_real_, nrow(s))
+    mtypes <- unique(s$mutation)
+    modelcols <- which(names(s) %in% x)
+    for (mt in mtypes) {
+
+        ismt <- s$mutation == mt
+        s$model[ismt] <- predict(R[[mt]], newdata = s[ismt, ..modelcols])
+
+    }
+
+    # normalize probability within each target element
+    s$norm <- unlist(tapply(s$model, s$id, simprobnorm))
+
+    # assign observed mutation count
+    pmuts <- paste0(
+        rep(as.character(GenomicRanges::seqnames(g)), each = 3),
+        rep(GenomicRanges::start(g), each = 3),
+        s$id,
+        s$mutation
+    )
+    omuts <- paste0(
+        as.character(GenomicRanges::seqnames(m2)),
+        GenomicRanges::start(m2),
+        m2$id,
+        m2$mutation
+    )
+    s$obs <- as.integer(table(factor(omuts, levels = pmuts)))
+
+    # add mut-to-wt readout to output for ease of use
+    s$PCC <- f$PCC
+
+    return(s)
+
+}
+
+
